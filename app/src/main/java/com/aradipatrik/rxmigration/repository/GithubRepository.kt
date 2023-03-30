@@ -6,8 +6,9 @@ import com.aradipatrik.rxmigration.db.RepoDao
 import com.aradipatrik.rxmigration.db.RepoEntity
 import com.aradipatrik.rxmigration.mapper.mapToDomain
 import com.aradipatrik.rxmigration.mapper.mapToEntity
-import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.schedulers.Schedulers
+import kotlinx.coroutines.rx3.asFlowable
+import kotlinx.coroutines.rx3.rxCompletable
 import kotlinx.coroutines.rx3.rxSingle
 import javax.inject.Inject
 
@@ -18,12 +19,11 @@ class GithubRepository @Inject constructor(
     fun queryRepos(owner: String) = rxSingle { githubApi.getRepos(owner) }
         .map(List<RepoWire>::mapToEntity)
         .flatMapCompletable {
-            Completable.fromAction {
-                repoDao.replaceAllSync(it)
-            }
+            rxCompletable { repoDao.replaceAll(it) }
         }
         .subscribeOn(Schedulers.io())
 
     fun getRepos() = repoDao.getAll()
+        .asFlowable()
         .map(List<RepoEntity>::mapToDomain)
 }
