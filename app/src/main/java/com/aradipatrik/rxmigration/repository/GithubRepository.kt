@@ -8,13 +8,14 @@ import com.aradipatrik.rxmigration.mapper.mapToDomain
 import com.aradipatrik.rxmigration.mapper.mapToEntity
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.schedulers.Schedulers
+import kotlinx.coroutines.rx3.rxSingle
 import javax.inject.Inject
 
 class GithubRepository @Inject constructor(
     private val githubApi: GithubApi,
     private val repoDao: RepoDao,
 ) {
-    fun queryRepos(owner: String) = githubApi.getRepos(owner)
+    fun queryRepos(owner: String) = rxSingle { githubApi.getRepos(owner) }
         .map(List<RepoWire>::mapToEntity)
         .flatMapCompletable {
             Completable.fromAction {
