@@ -7,12 +7,27 @@ import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.flowWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.aradipatrik.rxmigration.databinding.FragmentHomeBinding
+import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.addTo
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.plus
+import logcat.LogPriority
+import logcat.LogPriority.WARN
+import logcat.logcat
 
 @AndroidEntryPoint
 class HomeFragment : Fragment() {
@@ -21,8 +36,6 @@ class HomeFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val homeViewModel: HomeViewModel by viewModels()
-
-    private val disposables = CompositeDisposable()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -36,15 +49,15 @@ class HomeFragment : Fragment() {
         binding.reposRv.adapter = adapter
 
         homeViewModel.repos
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe(adapter::submitList)
-            .addTo(disposables)
+            .flowWithLifecycle(viewLifecycleOwner.lifecycle, Lifecycle.State.CREATED)
+            .onEach(adapter::submitList)
+            .launchIn(viewLifecycleOwner.lifecycleScope)
 
         binding.searchEt.setOnEditorActionListener { v, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                homeViewModel.queryRepos(v.text.toString())
-                    .subscribe()
-                    .addTo(disposables)
+                viewLifecycleOwner.lifecycleScope.launch {
+                    homeViewModel.queryRepos(v.text.toString())
+                }
                 true
             } else {
                 false
