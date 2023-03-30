@@ -19,10 +19,7 @@ import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.addTo
 import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import logcat.LogPriority
@@ -48,14 +45,19 @@ class HomeFragment : Fragment() {
         val adapter = RepoAdapter()
         binding.reposRv.adapter = adapter
 
+        val errorHandler = CoroutineExceptionHandler { _, throwable ->
+            logcat(WARN) { "Error: $throwable" }
+            Snackbar.make(binding.root, "Something went wrong", Snackbar.LENGTH_LONG).show()
+        }
+
         homeViewModel.repos
             .flowWithLifecycle(viewLifecycleOwner.lifecycle, Lifecycle.State.CREATED)
             .onEach(adapter::submitList)
-            .launchIn(viewLifecycleOwner.lifecycleScope)
+            .launchIn(viewLifecycleOwner.lifecycleScope + errorHandler)
 
         binding.searchEt.setOnEditorActionListener { v, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                viewLifecycleOwner.lifecycleScope.launch {
+                viewLifecycleOwner.lifecycleScope.launch(errorHandler) {
                     homeViewModel.queryRepos(v.text.toString())
                 }
                 true
