@@ -7,6 +7,7 @@ import com.aradipatrik.rxmigration.db.RepoEntity
 import com.aradipatrik.rxmigration.mapper.mapToDomain
 import com.aradipatrik.rxmigration.mapper.mapToEntity
 import io.reactivex.rxjava3.schedulers.Schedulers
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.rx3.asFlowable
 import kotlinx.coroutines.rx3.rxCompletable
 import kotlinx.coroutines.rx3.rxSingle
@@ -16,14 +17,11 @@ class GithubRepository @Inject constructor(
     private val githubApi: GithubApi,
     private val repoDao: RepoDao,
 ) {
-    fun queryRepos(owner: String) = rxSingle { githubApi.getRepos(owner) }
-        .map(List<RepoWire>::mapToEntity)
-        .flatMapCompletable {
-            rxCompletable { repoDao.replaceAll(it) }
-        }
-        .subscribeOn(Schedulers.io())
+    suspend fun queryRepos(owner: String) {
+        val repos = githubApi.getRepos(owner)
+        repoDao.replaceAll(repos.map(RepoWire::mapToEntity))
+    }
 
     fun getRepos() = repoDao.getAll()
-        .asFlowable()
         .map(List<RepoEntity>::mapToDomain)
 }
