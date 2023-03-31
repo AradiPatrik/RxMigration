@@ -9,6 +9,7 @@
 
     <com.google.android.material.card.MaterialCardView
         android:layout_width="0dp"
+        android:clickable="true"
         android:layout_height="wrap_content"
         android:id="@+id/cardView"
         app:cardCornerRadius="16dp"

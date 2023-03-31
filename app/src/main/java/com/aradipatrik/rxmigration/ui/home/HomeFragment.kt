@@ -16,15 +16,18 @@ import com.aradipatrik.rxmigration.databinding.FragmentHomeBinding
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.core.Completable
+import io.reactivex.rxjava3.core.Observable
+import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.addTo
-import kotlinx.coroutines.CoroutineExceptionHandler
+import io.reactivex.rxjava3.schedulers.Schedulers
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.plus
 import logcat.LogPriority
 import logcat.LogPriority.WARN
 import logcat.logcat
+import kotlin.concurrent.thread
 
 @AndroidEntryPoint
 class HomeFragment : Fragment() {
@@ -50,7 +53,11 @@ class HomeFragment : Fragment() {
             Snackbar.make(binding.root, "Something went wrong", Snackbar.LENGTH_LONG).show()
         }
 
-        homeViewModel.repos
+        adapter.itemClicks
+            .onEach { homeViewModel.onItemClick(it) }
+            .launchIn(viewLifecycleOwner.lifecycleScope + errorHandler)
+
+        homeViewModel.repoItems
             .flowWithLifecycle(viewLifecycleOwner.lifecycle, Lifecycle.State.CREATED)
             .onEach(adapter::submitList)
             .launchIn(viewLifecycleOwner.lifecycleScope + errorHandler)
